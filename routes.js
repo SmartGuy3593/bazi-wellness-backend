@@ -1,6 +1,8 @@
 const { Router } = require('express');
 const { DateTime } = require('luxon');
 const baziEngine = require('./lib/bazi_engine/index');
+const supabase = require('./supabase/config');
+const { constructPrompt, overviewPrompt, getAnthropicResponse, getOpenaiResponse } = require('./lib/openai')
 
 const {
     loadData,
@@ -95,15 +97,42 @@ router.get('/api/day_details', async (req, res) => {
 });
 
 router.post('/api/ai_insight', async (req, res) => {
-    console.log("Post localhost:5001/ai_insight");
+    console.log("POST localhost:5001/ai_insight");
 
     const { dayDetails, aiProvider } = req.body;
+    console.log(req.body);
 
     if (!dayDetails || !aiProvider) {
         return res.status(400).json({ error: "Day details and AI provider are required" });
     }
 
     const prompt = constructPrompt(dayDetails);
+    console.log(prompt);
+
+    let response;
+    if (aiProvider === 'Anthropic') {
+        response = await getAnthropicResponse(prompt);
+    } else if (aiProvider === 'OpenAI') {
+        response = await getOpenaiResponse(prompt);
+    } else {
+        return res.status(400).json({ error: "Invalid AI provider" });
+    }
+
+    res.json({ ai_insight: response });
+});
+
+router.post('/api/ai_overview', async (req, res) => {
+    console.log("POST localhost:5001/ai_overview");
+
+    const { dayDetails, aiProvider } = req.body;
+    console.log(req.body);
+
+    if (!dayDetails || !aiProvider) {
+        return res.status(400).json({ error: "Day details and AI provider are required" });
+    }
+
+    const prompt = overviewPrompt(dayDetails);
+    console.log(prompt);
 
     let response;
     if (aiProvider === 'Anthropic') {
@@ -132,6 +161,71 @@ router.get('/api/ten_god', async (req, res) => {
         res.json({ ten_god });
     } else {
         res.status(404).json({ error: "No matching 10 God found" });
+    }
+});
+
+router.post('/api/create_user', async (req, res) => {
+    console.log("Post localhost:5001/create_user");
+    const HeavenlyStem = [
+        "Yang Earth",
+        "Yin Earth",
+        "Yang Metal",
+        "Yin Metal",
+        "Yang Fire",
+        "Yin Fire",
+    ];
+    const EarthlyBranch = [
+        "Dragon",
+        "Rooster",
+        "Snake",
+    ];
+
+    const insertData = {
+        name: req.body.name,
+        birth_date: req.body.birthDate,
+        birth_time: req.body.birthTime,
+        timezone: req.body.timezone,
+        location: req.body.location,
+        year_pillar_stem: HeavenlyStem[Math.floor(Math.random() * 6)],
+        year_pillar_branch: EarthlyBranch[Math.floor(Math.random() * 3)],
+        month_pillar_stem: HeavenlyStem[Math.floor(Math.random() * 6)],
+        month_pillar_branch: EarthlyBranch[Math.floor(Math.random() * 3)],
+        day_pillar_stem: HeavenlyStem[Math.floor(Math.random() * 6)],
+        day_pillar_branch: EarthlyBranch[Math.floor(Math.random() * 3)],
+        hour_pillar_stem: HeavenlyStem[Math.floor(Math.random() * 6)],
+        hour_pillar_branch: EarthlyBranch[Math.floor(Math.random() * 3)],
+    }
+
+    // Assuming `supabase` is properly configured and imported
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .insert(insertData);
+        if (error) {
+            return res.status(500).json({ error: error.message });
+        }
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "An error occurred while fetching user data." });
+    }
+});
+
+router.get('/api/get_user', async (req, res) => {
+    console.log("Get localhost:5001/get_user");
+
+    // Assuming `supabase` is properly configured and imported
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*');
+        if (error) {
+            return res.status(500).json({ error: error.message });
+        }
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "An error occurred while fetching user data." });
     }
 });
 
