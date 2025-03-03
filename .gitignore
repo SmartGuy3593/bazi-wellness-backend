@@ -1,5 +1,7 @@
 node_modules
-DS_Store
+dist
+coverage
 .env
-datafiles
-package-lock.json
+pnpm-lock.yaml
+logs
+*.log

@@ -1,0 +1,7 @@
+build
+coverage
+dist
+node_modules
+/prisma/generated/zod
+/drizzle/*
+renovate.json
